@@ -1,0 +1,21 @@
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from .jwt_utils import parse_jwt_token, extract_token
+from .config import settings
+
+security = HTTPBearer()
+
+async def auth_middleware(request: Request, credentials: HTTPAuthorizationCredentials = security):
+    if not settings.ENABLE_AUTH:
+        # If authentication is disabled, allow the request to proceed
+        return {}
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization header is missing")
+
+    try:
+        token = extract_token(credentials.credentials)
+        payload = parse_jwt_token(token)
+        request.state.user = payload
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    return payload

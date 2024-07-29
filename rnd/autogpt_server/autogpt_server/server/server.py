@@ -39,6 +39,9 @@ from autogpt_server.util.lock import KeyedMutex
 from autogpt_server.util.service import AppService, expose, get_service_client
 from autogpt_server.util.settings import Settings
 
+from fastapi import FastAPI, Depends
+from autogpt_libs.auth.middleware import auth_middleware
+
 
 class AgentServer(AppService):
     event_queue: asyncio.Queue[ExecutionResult] = asyncio.Queue()
@@ -82,6 +85,8 @@ class AgentServer(AppService):
 
         # Define the API routes
         router = APIRouter(prefix="/api")
+        router.dependencies.append(Depends(auth_middleware))
+
         router.add_api_route(
             path="/blocks",
             endpoint=self.get_graph_blocks,  # type: ignore

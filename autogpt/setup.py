@@ -1,9 +1,7 @@
-import platform
-from pathlib import Path
 from pkgutil import iter_modules
-from typing import Union
+from shutil import which
 
-from cx_Freeze import Executable, setup  # type: ignore
+from cx_Freeze import Executable, setup
 
 packages = [
     m.name
@@ -13,47 +11,11 @@ packages = [
     and ("poetry" in m.module_finder.path)  # type: ignore
 ]
 
-# set the icon based on the platform
-icon = "../../assets/gpt_dark_RGB.ico"
-if platform.system() == "Darwin":
-    icon = "../../assets/gpt_dark_RGB.icns"
-elif platform.system() == "Linux":
-    icon = "../../assets/gpt_dark_RGB.png"
-
-
-def txt_to_rtf(input_file: Union[str, Path], output_file: Union[str, Path]) -> None:
-    """
-    Convert a text file to RTF format.
-
-    Args:
-    input_file (Union[str, Path]): Path to the input text file.
-    output_file (Union[str, Path]): Path to the output RTF file.
-
-    Returns:
-    None
-    """
-    input_path = Path(input_file)
-    output_path = Path(output_file)
-
-    with input_path.open("r", encoding="utf-8") as txt_file:
-        content = txt_file.read()
-
-    # RTF header
-    rtf = r"{\rtf1\ansi\deff0 {\fonttbl {\f0 Times New Roman;}}\f0\fs24 "
-
-    # Replace newlines with RTF newline
-    rtf += content.replace("\n", "\\par ")
-
-    # Close RTF document
-    rtf += "}"
-
-    with output_path.open("w", encoding="utf-8") as rtf_file:
-        rtf_file.write(rtf)
-
-
-# Convert LICENSE to LICENSE.rtf
-license_file = "LICENSE.rtf"
-txt_to_rtf("../LICENSE", license_file)
+icon = (
+    "../../assets/gpt_dark_RGB.icns"
+    if which("sips")
+    else "../../assets/gpt_dark_RGB.ico"
+)
 
 
 setup(
@@ -93,7 +55,6 @@ setup(
             "target_name": "AutoGPT",
             "add_to_path": True,
             "install_icon": "../assets/gpt_dark_RGB.ico",
-            "license_file": license_file,
         },
     },
 )

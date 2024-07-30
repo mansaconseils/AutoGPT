@@ -26,10 +26,10 @@ class MyAgent(Agent):
         settings: AgentSettings,
         llm_provider: MultiProvider
         file_storage: FileStorage,
-        app_config: AppConfig,
+        legacy_config: Config,
     ):
         # Call the parent constructor to bring in the default components
-        super().__init__(settings, llm_provider, file_storage, app_config)
+        super().__init__(settings, llm_provider, file_storage, legacy_config)
         # Add your custom component
         self.my_component = MyComponent()
 ```

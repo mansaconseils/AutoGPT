@@ -5,18 +5,20 @@ import logging
 from typing import Literal, Optional
 
 import click
+from colorama import Back, Style
+from forge.config.config import GPT_3_MODEL, Config
 from forge.llm.providers import ModelName, MultiProvider
-
-from autogpt.app.config import GPT_3_MODEL, AppConfig
 
 logger = logging.getLogger(__name__)
 
 
 async def apply_overrides_to_config(
-    config: AppConfig,
+    config: Config,
     continuous: bool = False,
     continuous_limit: Optional[int] = None,
     skip_reprompt: bool = False,
+    browser_name: Optional[str] = None,
+    allow_downloads: bool = False,
     skip_news: bool = False,
 ) -> None:
     """Updates the config object with the given arguments.
@@ -31,6 +33,8 @@ async def apply_overrides_to_config(
         log_level (int): The global log level for the application.
         log_format (str): The format for the log(s).
         log_file_format (str): Override the format for the log file.
+        browser_name (str): The name of the browser to use for scraping the web.
+        allow_downloads (bool): Whether to allow AutoGPT to download files natively.
         skips_news (bool): Whether to suppress the output of latest news on startup.
     """
     config.continuous_mode = False
@@ -51,33 +55,44 @@ async def apply_overrides_to_config(
         raise click.UsageError("--continuous-limit can only be used with --continuous")
 
     # Check availability of configured LLMs; fallback to other LLM if unavailable
-    config.fast_llm, config.smart_llm = await check_models(
-        (config.fast_llm, "fast_llm"), (config.smart_llm, "smart_llm")
-    )
+    config.fast_llm = await check_model(config.fast_llm, "fast_llm")
+    config.smart_llm = await check_model(config.smart_llm, "smart_llm")
 
     if skip_reprompt:
         config.skip_reprompt = True
+
+    if browser_name:
+        config.selenium_web_browser = browser_name
+
+    if allow_downloads:
+        logger.warning(
+            msg=f"{Back.LIGHTYELLOW_EX}"
+            "AutoGPT will now be able to download and save files to your machine."
+            f"{Back.RESET}"
+            " It is recommended that you monitor any files it downloads carefully.",
+        )
+        logger.warning(
+            msg=f"{Back.RED + Style.BRIGHT}"
+            "NEVER OPEN FILES YOU AREN'T SURE OF!"
+            f"{Style.RESET_ALL}",
+        )
+        config.allow_downloads = True
 
     if skip_news:
         config.skip_news = True
 
 
-async def check_models(
-    *models: tuple[ModelName, Literal["smart_llm", "fast_llm"]]
-) -> tuple[ModelName, ...]:
+async def check_model(
+    model_name: ModelName, model_type: Literal["smart_llm", "fast_llm"]
+) -> ModelName:
     """Check if model is available for use. If not, return gpt-3.5-turbo."""
     multi_provider = MultiProvider()
-    available_models = await multi_provider.get_available_chat_models()
+    models = await multi_provider.get_available_chat_models()
 
-    checked_models: list[ModelName] = []
-    for model, model_type in models:
-        if any(model == m.name for m in available_models):
-            checked_models.append(model)
-        else:
-            logger.warning(
-                f"You don't have access to {model}. "
-                f"Setting {model_type} to {GPT_3_MODEL}."
-            )
-            checked_models.append(GPT_3_MODEL)
+    if any(model_name == m.name for m in models):
+        return model_name
 
-    return tuple(checked_models)
+    logger.warning(
+        f"You don't have access to {model_name}. Setting {model_type} to {GPT_3_MODEL}."
+    )
+    return GPT_3_MODEL

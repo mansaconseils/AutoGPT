@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any, Dict
 
 import uvicorn
+from autogpt_libs.auth.middleware import auth_middleware
 from fastapi import (
     APIRouter,
     Body,
+    Depends,
     FastAPI,
     HTTPException,
     WebSocket,
@@ -38,9 +40,6 @@ from autogpt_server.util.data import get_frontend_path
 from autogpt_server.util.lock import KeyedMutex
 from autogpt_server.util.service import AppService, expose, get_service_client
 from autogpt_server.util.settings import Settings
-
-from fastapi import FastAPI, Depends
-from autogpt_libs.auth.middleware import auth_middleware
 
 
 class AgentServer(AppService):
